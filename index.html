@@ -79,12 +79,7 @@ small { color:#666; }
 // --------------------------------------
 // CONFIG: Year + starting reference dates
 // --------------------------------------
-
-// Pick the year of the schedule
 const YEAR = 2026;
-
-// First Monday of Collection Week 1 in the calendar
-// (adjust this single date if the city changes calendars)
 const FIRST_WEEK1_MONDAY = new Date("2026-01-05");
 
 // Helper: add days
@@ -96,14 +91,13 @@ function addDays(date, days) {
 
 // Generate all pickup dates for a given week + weekday
 function generateDates(collectionWeek, weekdayIndex) {
-  // weekdayIndex: Mon=1 … Fri=5
   const startOffset = (collectionWeek === 1 ? 0 : 7) + (weekdayIndex - 1);
   let date = addDays(FIRST_WEEK1_MONDAY, startOffset);
 
   const dates = [];
   while (date.getFullYear() === YEAR) {
     dates.push(new Date(date));
-    date = addDays(date, 14); // every two weeks
+    date = addDays(date, 14);
   }
   return dates;
 }
@@ -117,14 +111,38 @@ function nextPickup(dates) {
   return "No more pickups scheduled this year.";
 }
 
+// ---- NEW: save selections + send to OneSignal ----
+function savePreferencesToOneSignal(week, day, color) {
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.User.addTag("week", week);
+    await OneSignal.User.addTag("day", day);
+    await OneSignal.User.addTag("color", color);
+  });
+
+  localStorage.setItem("curbiePrefs", JSON.stringify({ week, day, color }));
+}
+
+// ---- UPDATED update() ----
 function update() {
   const week = Number(document.getElementById("week").value);
   const day = Number(document.getElementById("day").value);
-  const color = document.getElementById("color").value; // reserved for routing logic later
+  const color = document.getElementById("color").value;
 
   const dates = generateDates(week, day);
   document.getElementById("result").textContent =
     `Your next pickup is: ${nextPickup(dates)}`;
+
+  savePreferencesToOneSignal(week, day, color);
+}
+
+// Restore saved preferences on load
+const saved = localStorage.getItem("curbiePrefs");
+if (saved) {
+  const prefs = JSON.parse(saved);
+  document.getElementById("week").value = prefs.week;
+  document.getElementById("day").value = prefs.day;
+  document.getElementById("color").value = prefs.color;
 }
 
 document.querySelectorAll("select").forEach(s =>
@@ -133,6 +151,8 @@ document.querySelectorAll("select").forEach(s =>
 
 update();
 </script>
+
+<!-- OneSignal -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -140,11 +160,10 @@ update();
     await OneSignal.init({
       appId: "58063cbf-6eb3-49d1-badf-0d9c99548fe9",
       safari_web_id: "web.onesignal.auto.5dcf04a7-d9b5-4793-8717-b5ec1870e3bb",
-      notifyButton: {
-        enable: true,
-      },
+      notifyButton: { enable: true }
     });
   });
 </script>
+
 </body>
 </html>
