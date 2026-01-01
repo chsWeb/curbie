@@ -57,7 +57,6 @@ small { color:#666; }
 
 <h3>Get reminders</h3>
 
-<!-- Formspree form -->
 <form action="https://formspree.io/f/mjgkklyq" method="POST">
   <label>
     Email
@@ -77,19 +76,19 @@ small { color:#666; }
 
 <script>
 // --------------------------------------
-// CONFIG: Year + starting reference dates
+// CONFIG
 // --------------------------------------
 const YEAR = 2026;
-const FIRST_WEEK1_MONDAY = new Date("2026-01-05");
 
-// Helper: add days
+// IMPORTANT: build dates in *local* time (no timezone shift)
+const FIRST_WEEK1_MONDAY = new Date(YEAR, 0, 5); // Jan 5, 2026
+
 function addDays(date, days) {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
 }
 
-// Generate all pickup dates for a given week + weekday
 function generateDates(collectionWeek, weekdayIndex) {
   const startOffset = (collectionWeek === 1 ? 0 : 7) + (weekdayIndex - 1);
   let date = addDays(FIRST_WEEK1_MONDAY, startOffset);
@@ -111,7 +110,6 @@ function nextPickup(dates) {
   return "No more pickups scheduled this year.";
 }
 
-// ---- NEW: save selections + send to OneSignal ----
 function savePreferencesToOneSignal(week, day, color) {
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
@@ -123,7 +121,6 @@ function savePreferencesToOneSignal(week, day, color) {
   localStorage.setItem("curbiePrefs", JSON.stringify({ week, day, color }));
 }
 
-// ---- UPDATED update() ----
 function update() {
   const week = Number(document.getElementById("week").value);
   const day = Number(document.getElementById("day").value);
@@ -136,7 +133,7 @@ function update() {
   savePreferencesToOneSignal(week, day, color);
 }
 
-// Restore saved preferences on load
+// Restore saved values on load
 const saved = localStorage.getItem("curbiePrefs");
 if (saved) {
   const prefs = JSON.parse(saved);
@@ -152,7 +149,6 @@ document.querySelectorAll("select").forEach(s =>
 update();
 </script>
 
-<!-- OneSignal -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
