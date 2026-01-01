@@ -1,130 +1,138 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Curbie – Recycling Pickup Reminder</title>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Curbside Pickup</title>
-    </head>
+<style>
+body { font-family: system-ui, -apple-system, Segoe UI; margin: 32px; line-height: 1.5; }
+label { display:block; margin-top: 14px; }
+h1 { margin-bottom: 0.35em; }
+.output { margin-top: 20px; font-size: 1.25rem; font-weight: 600; }
+form { margin-top: 28px; padding: 14px; border: 1px solid #ddd; border-radius: 10px; max-width: 420px; }
+button { margin-top: 12px; padding: 8px 14px; border-radius: 8px; border: 0; cursor:pointer; }
+small { color:#666; }
+</style>
+</head>
 
-    <body>
-        <!doctype html>
-        <html>
+<body>
 
-            <head>
-                <meta charset="UTF-8" />
-                <title>Recycling Pickup Finder</title>
+<h1>Curbie</h1>
+<p>Find your next recycling pickup and get reminders.</p>
 
-                <style>
-                    /* Simple layout */
-                    body {
-                        font-family: system-ui, -apple-system, Segoe UI;
-                        margin: 32px;
-                    }
+<label>
+  Collection Week
+  <select id="week">
+    <option value="1">Collection Week 1</option>
+    <option value="2">Collection Week 2</option>
+  </select>
+</label>
 
-                    label {
-                        display: block;
-                        margin-top: 12px;
-                    }
+<label>
+  Pickup Day
+  <select id="day">
+    <option value="1">Monday</option>
+    <option value="2">Tuesday</option>
+    <option value="3">Wednesday</option>
+    <option value="4">Thursday</option>
+    <option value="5">Friday</option>
+  </select>
+</label>
 
-                    .output {
-                        margin-top: 20px;
-                        font-size: 1.25rem;
-                        font-weight: 600;
-                    }
-                </style>
-            </head>
+<label>
+  Route Color
+  <select id="color">
+    <option value="blue">Blue</option>
+    <option value="green">Green</option>
+    <option value="purple">Purple</option>
+    <option value="yellow">Yellow</option>
+    <option value="orange">Orange</option>
+    <option value="red">Red</option>
+  </select>
+</label>
 
-            <body>
+<div class="output" id="result"></div>
 
-                <h1>Find Your Next Recycling Pickup</h1>
+<hr style="margin:30px 0" />
 
-                <label>
-                    Week:
-                    <select id="week">
-                        <option value="1">Collection Week 1</option>
-                        <option value="2">Collection Week 2</option>
-                    </select>
-                </label>
+<h3>Get reminders</h3>
 
-                <label>
-                    Day:
-                    <select id="day">
-                        <option value="1">Monday</option>
-                        <option value="2">Tuesday</option>
-                        <option value="3">Wednesday</option>
-                        <option value="4">Thursday</option>
-                        <option value="5">Friday</option>
-                    </select>
-                </label>
+<!-- Formspree form -->
+<form action="https://formspree.io/f/mjgkklyq" method="POST">
+  <label>
+    Email
+    <input type="email" name="email" required>
+  </label>
 
-                <label>
-                    Color:
-                    <select id="color">
-                        <option value="blue">Blue</option>
-                        <option value="green">Green</option>
-                        <option value="purple">Purple</option>
-                        <option value="yellow">Yellow</option>
-                        <option value="orange">Orange</option>
-                        <option value="red">Red</option>
-                    </select>
-                </label>
+  <input type="hidden" name="source" value="Curbie">
 
-                <div class="output" id="result"></div>
+  <label>
+    Message (optional)
+    <textarea name="message" placeholder="Tell us your color and collection week if you want."></textarea>
+  </label>
 
-                <script>
-                    // 2026 pickup dates extracted from the schedule
-                    // Key: week-color -> list of pickup dates (YYYY-MM-DD)
-                    const schedule = {
-                        "1-blue": ["2026-01-05", "2026-01-19", "2026-02-02", "2026-02-16", "2026-03-02", "2026-03-16", "2026-03-30", "2026-04-13", "2026-04-27", "2026-05-11", "2026-05-26", "2026-06-08", "2026-06-22", "2026-07-06", "2026-07-20", "2026-08-03", "2026-08-17", "2026-08-31", "2026-09-14", "2026-09-28", "2026-10-12", "2026-10-26", "2026-11-09", "2026-11-23", "2026-12-08", "2026-12-22"],
-                        // (repeat pattern for each color/week as you transcribe)
-                    };
+  <button type="submit">Notify Me</button>
+  <small>We’ll only email reminders about recycling pickup.</small>
+</form>
 
-                    // Utility to get next upcoming date
-                    function nextPickup(list) {
-                        const today = new Date();
-                        for (const d of list) {
-                            const date = new Date(d);
-                            if (date >= today) return date.toDateString();
-                        }
-                        return "No more pickups scheduled this year.";
-                    }
+<script>
+// --------------------------------------
+// CONFIG: Year + starting reference dates
+// --------------------------------------
 
-                    function update() {
-                        const week = document.getElementById("week").value;
-                        const day = document.getElementById("day").value; // (kept for later enhancements)
-                        const color = document.getElementById("color").value;
+// Pick the year of the schedule
+const YEAR = 2026;
 
-                        const key = `${week}-${color}`;
-                        const dates = schedule[key] || [];
-                        document.getElementById("result").textContent =
-                            dates.length ? `Your next pickup is: ${nextPickup(dates)}` :
-                                "Schedule not entered for this color yet.";
-                    }
+// First Monday of Collection Week 1 in the calendar
+// (adjust this single date if the city changes calendars)
+const FIRST_WEEK1_MONDAY = new Date("2026-01-05");
 
-                    document.querySelectorAll("select").forEach(s =>
-                        s.addEventListener("change", update)
-                    );
+// Helper: add days
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
 
-                    update();
-                </script>
-                <h2>Sign Up</h2>
-                <!-- modify this form HTML and place wherever you want your form -->
-                <form action="https://formspree.io/f/mjgkklyq" method="POST">
-                    <label>
-                        Your email:
-                        <input type="email" name="email">
-                    </label>
-                    <label>
-                        Your message:
-                        <textarea name="message"></textarea>
-                    </label>
-                    <!-- your other form fields go here -->
-                    <button type="submit">Send</button>
-                </form>
-            </body>
+// Generate all pickup dates for a given week + weekday
+function generateDates(collectionWeek, weekdayIndex) {
+  // weekdayIndex: Mon=1 … Fri=5
+  const startOffset = (collectionWeek === 1 ? 0 : 7) + (weekdayIndex - 1);
+  let date = addDays(FIRST_WEEK1_MONDAY, startOffset);
 
-        </html>
-    </body>
+  const dates = [];
+  while (date.getFullYear() === YEAR) {
+    dates.push(new Date(date));
+    date = addDays(date, 14); // every two weeks
+  }
+  return dates;
+}
 
+function nextPickup(dates) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  for (const d of dates) {
+    if (d >= today) return d.toDateString();
+  }
+  return "No more pickups scheduled this year.";
+}
+
+function update() {
+  const week = Number(document.getElementById("week").value);
+  const day = Number(document.getElementById("day").value);
+  const color = document.getElementById("color").value; // reserved for routing logic later
+
+  const dates = generateDates(week, day);
+  document.getElementById("result").textContent =
+    `Your next pickup is: ${nextPickup(dates)}`;
+}
+
+document.querySelectorAll("select").forEach(s =>
+  s.addEventListener("change", update)
+);
+
+update();
+</script>
+
+</body>
 </html>
